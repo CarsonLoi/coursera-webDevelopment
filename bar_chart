@@ -1,0 +1,91 @@
+import React , {useRef , useEffect, useState} from 'react';
+import * as echarts from 'echarts';
+
+function Bar_Chart() {
+
+    const [chartData, setChartData] = useState([120, 200, 150, 80, 70, 110, 130])
+    const chartRef = useRef(null);
+    let chartInstance = null ;
+
+    
+
+    const renderChart = () => {
+
+
+        const renderedChartInstance = echarts.getInstanceByDom(chartRef.current);
+        //const option2 = option1;
+        if (renderedChartInstance) {
+            chartInstance = renderedChartInstance;
+        } else {
+            chartInstance = echarts.init(chartRef.current);
+        }
+    
+        var option = {
+            xAxis: {
+              type: 'category',
+              data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+            },
+            yAxis: {
+              type: 'value'
+            },
+            series: [
+              {
+                data: chartData,
+                type: 'bar'
+              }
+            ]
+          };
+        //console.log(option1.series[0].data);
+        chartInstance.setOption(option, true );
+      };
+
+    useEffect(() => {
+      
+        const renderedChartInstance = echarts.getInstanceByDom(chartRef.current);
+        //const option2 = option1;
+        if (renderedChartInstance) {
+            chartInstance = renderedChartInstance;
+        } else {
+            chartInstance = echarts.init(chartRef.current);
+        }
+    
+        var option = {
+            xAxis: {
+              type: 'category',
+              data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+            },
+            yAxis: {
+              type: 'value'
+            },
+            series: [
+              {
+                data: chartData,
+                type: 'bar'
+              }
+            ]
+          };
+        //console.log(option1.series[0].data);
+        chartInstance.setOption(option, true );
+    },[chartData]);
+
+
+
+    const resizeFunc = () => {
+      if (chartInstance) chartInstance.resize();
+    }
+  
+    useEffect(() => {
+      window.addEventListener('resize' , resizeFunc) 
+   
+      return () => {
+          window.removeEventListener('resize' , resizeFunc) 
+          //chartInstance2 && chartInstance2.dispose();
+      };
+    }, []);
+
+    return (
+        <div ref={chartRef} style={{ height: "200px" }}></div>
+    )
+}
+
+export default Bar_Chart ;
