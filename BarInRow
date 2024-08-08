@@ -1,0 +1,1060 @@
+import React, { useRef, useEffect, useState } from "react";
+import * as echarts from "echarts";
+import {CRow, CCol, CCard, CCardHeader, CCardBody} from '@coreui/react'
+import PubSub from 'pubsub-js';
+
+const KIPMap = {
+  Mass_PM : ["Drop" , "Win" , "Hold" , "Headcount" , "OpenHours" , "ActiveTable" , "WATM" , "AvgBet"] ,
+  Mass : ["Win" , "Headcount" , "OpenHours" , "ActiveTable" , "WATM" , "AvgBet"  , "HCPOH" , "Game Pace"] ,
+  PM : ["Win" , "Headcount" , "OpenHours" , "ActiveTable" , "WATM" , "AvgBet"  , "HCPOH" , "Game Pace"] ,
+  JM : ["Turnover" , "Win" , "Win Rate" , "Headcount" , "OpenHours" , "ActiveTable" , "WATM" , "AvgBet"] ,
+  PRR : ["Turnover" , "Win" , "Win Rate" , "Headcount" , "OpenHours" , "ActiveTable" , "WATM" , "AvgBet"] ,
+  NIC : ["Turnover" , "Win" , "Win Rate" , "Headcount" , "OpenHours" , "ActiveTable" , "WATM" , "AvgBet"] ,
+}
+
+const chartLabelFormat =  { Drop : params => `${(params.value / 1000000).toFixed(0)}m`,
+                              TableDrop : params => `${(params.value / 1000000).toFixed(0)}m` ,
+                              CageDrop : params => `${(params.value / 1000000).toFixed(0)}m` ,
+                              Turnover : params => `${(params.value / 1000000).toFixed(0)}m` ,
+                              TableTO : params => `${(params.value / 1000000).toFixed(0)}m` ,
+                              Win : params => `${(params.value / 1000000).toFixed(0)}m` ,
+                              Hold : params => `${(params.value*100).toFixed(1)}%`  ,
+                              'Win Rate' : params => `${(params.value*100).toFixed(1)}%`  ,
+                              Headcount: params => `${((params.value > 1000)?(params.value / 1000).toFixed(1) + "k":params.value)}` ,
+                              OpenHours : params => `${((params.value > 1000)?(params.value / 1000).toFixed(1) + "k":params.value)}` ,
+                              WATM : params => `${(params.value).toFixed(0)}` ,
+                              ActiveTable : params => `${(params.value).toFixed(0)}` ,
+                              OpenTable : params => `${(params.value).toFixed(0)}` ,
+                              "Game Pace" : params => `${(params.value).toFixed(1)}` ,
+                              "Active Games" : params => `${(params.value).toFixed(1)}` ,
+                              ActivePct : params => `${(params.value*100).toFixed(1)}%`  ,
+                              Theowin : params => `${(params.value / 1000000).toFixed(0)}m` ,
+                              CasinoWin : params => `${(params.value / 1000000).toFixed(0)}m` ,
+                              AvgBet : params => `${(params.value).toFixed(0)}` ,
+                              RollingWin : params => `${(params.value / 1000000).toFixed(0)}m` ,
+                              'HCPOH' : params => `${(params.value).toFixed(2)}` ,
+                            }
+
+const chartTooltipFormat =  { Drop : params => `${params[0].marker + (params[0].value / 1000000).toFixed(0)}m`,
+                              TableDrop : params => `${params[0].marker + (params[0].value / 1000000).toFixed(0)}m` ,
+                              CageDrop : params => `${params[0].marker + (params[0].value / 1000000).toFixed(0)}m` ,
+                              Turnover : params => `${params[0].marker + (params[0].value / 1000000).toFixed(0)}m` ,
+                              TableTO : params => `${params[0].marker + (params[0].value / 1000000).toFixed(0)}m` ,
+                              Win : params => `${params[0].marker + (params[0].value / 1000000).toFixed(0)}m` ,
+                              Hold : params => `${params[0].marker + (params[0].value * 100).toFixed(1)}%`  ,
+                              'Win Rate' : params => `${params[0].marker + (params[0].value * 100).toFixed(1)}%` ,
+                              Headcount: params => `${params[0].marker + ((params[0].value > 1000)?(params[0].value / 1000).toFixed(1) + "k":params[0].value)}` ,
+                              OpenHours : params => `${params[0].marker + ((params[0].value > 1000)?(params[0].value / 1000).toFixed(1) + "k":params[0].value)}` ,
+                              WATM : params => `${params[0].marker + (params[0].value).toFixed(0)}` ,
+                              ActiveTable : params => `${params[0].marker + (params[0].value).toFixed(0)}` ,
+                              OpenTable : params => `${params[0].marker + (params[0].value).toFixed(0)}` ,
+                              "Game Pace" : params => `${params[0].marker + (params[0].value).toFixed(1)}` ,
+                              "Active Games" : params => `${params[0].marker + (params[0].value).toFixed(1)}` ,
+                              ActivePct : params => `${params[0].marker + (params[0].value * 100).toFixed(1)}%` ,
+                              Theowin : params => `${params[0].marker + (params[0].value / 1000000).toFixed(0)}m` ,
+                              CasinoWin : params => `${params[0].marker + (params[0].value / 1000000).toFixed(0)}m` ,
+                              AvgBet : params => `${params[0].marker + (params[0].value).toFixed(0)}` ,
+                              RollingWin : params => `${params[0].marker + (params[0].value / 1000000).toFixed(0)}m` ,
+                              'HCPOH' : params => `${params[0].marker + (params[0].value).toFixed(2)}` ,
+                            }
+
+
+                            //params => `${params[0].marker + params[0].value.toFixed(0)}`
+//'Drop' , 'Win', 'Hold' , 'Turnover' , 'Win Rate' , 'Headcount' , 'OpenHours' , 'ActiveTable' , 'OpenTable' , 'WATM' , 'Game Pace' , 'Active Games' , 'CasinoWin' , 'AvgBet' , 'Drop per Unit', 'Win per Unit', 'TO per Unit' , 'OHs per Unit' , 'HC per Hour' 
+function BarChartInRow() {
+
+  const [state_page_business_chartsPanel_data , set_state_page_business_chartsPanel_data] = useState({});
+  const [state_page_business_chartsPanel_xAxis , set_state_page_business_chartsPanel_xAxis] = useState([]);
+  const [state_page_business_chartsPanel_segmentSelected , set_state_page_business_chartsPanel_segmentSelected] = useState("Mass_PM");
+  const [state_page_business_chartsPanel_updated , set_state_page_business_chartsPanel_updated] = useState(false);
+
+
+  const chartRef = useRef(null);
+  const chartRef2 = useRef(null);
+  const chartRef3 = useRef(null);
+  const chartRef4 = useRef(null);
+  const chartRef5 = useRef(null);
+  const chartRef6 = useRef(null);
+  const chartRef7 = useRef(null);
+  const chartRef8 = useRef(null);
+
+  let chartInstance = null;
+  let chartInstance2 = null;
+  let chartInstance3 = null;
+  let chartInstance4 = null;
+  let chartInstance5 = null;
+  let chartInstance6 = null;
+  let chartInstance7 = null;
+  let chartInstance8 = null;
+ // const [propertyValue, setPropertyValue] = useState("GM");
+
+  PubSub.subscribe("page_business_chartsPanel_segmentSelected", (msg, data) => {
+    //console.log('page_business_selectedArea',data);
+    set_state_page_business_chartsPanel_segmentSelected(data);
+  });
+
+
+  PubSub.subscribe("page_business_chartsPanel_data", (msg, data) => {
+    //console.log('liveBusiness_lineChart_Indicator',data);
+    set_state_page_business_chartsPanel_data(data);
+  });
+
+  PubSub.subscribe("page_business_chartsPanel_xAxis", (msg, data) => {
+    //console.log('page_business_selectedArea',data);
+    set_state_page_business_chartsPanel_xAxis(data);
+  });
+
+ 
+  useEffect(() => {
+
+    //console.log(state_page_business_chartsPanel_data[KIPMap[state_page_business_chartsPanel_segmentSelected][0]])
+    if (state_page_business_chartsPanel_data !== {} && state_page_business_chartsPanel_data[KIPMap[state_page_business_chartsPanel_segmentSelected][0]] !== undefined) {
+
+      const renderedChartInstance = echarts.getInstanceByDom(chartRef.current);
+    const renderedChartInstance2 = echarts.getInstanceByDom(chartRef2.current);
+    const renderedChartInstance3 = echarts.getInstanceByDom(chartRef3.current);
+    const renderedChartInstance4 = echarts.getInstanceByDom(chartRef4.current);
+    const renderedChartInstance5 = echarts.getInstanceByDom(chartRef5.current);
+    const renderedChartInstance6 = echarts.getInstanceByDom(chartRef6.current);
+    const renderedChartInstance7 = echarts.getInstanceByDom(chartRef7.current);
+    const renderedChartInstance8 = echarts.getInstanceByDom(chartRef8.current);
+    //const option2 = option1;
+    if (renderedChartInstance) {
+      chartInstance = renderedChartInstance;
+      chartInstance2 = renderedChartInstance2;
+      chartInstance3 = renderedChartInstance3;
+      chartInstance4 = renderedChartInstance4;
+      chartInstance5 = renderedChartInstance5;
+      chartInstance6 = renderedChartInstance6;
+      chartInstance7 = renderedChartInstance7;
+      chartInstance8 = renderedChartInstance8;
+    } else {
+        chartInstance = echarts.init(chartRef.current);
+        chartInstance2 = echarts.init(chartRef2.current);
+        chartInstance3 = echarts.init(chartRef3.current);
+        chartInstance4 = echarts.init(chartRef4.current);
+        chartInstance5 = echarts.init(chartRef5.current);
+        chartInstance6 = echarts.init(chartRef6.current);
+        chartInstance7 = echarts.init(chartRef7.current);
+        chartInstance8 = echarts.init(chartRef8.current);
+    }
+
+
+
+    var option1 = {
+      title:{
+        show:true,
+        text:KIPMap[state_page_business_chartsPanel_segmentSelected][0],
+        subtext:"",
+        x:"15px",
+        y:"top",
+        textStyle:{
+            fontSize:'15px',
+            fontWeight:'normal'
+        },
+        padding: [2,0,5,0]
+      },
+      textStyle: {
+        color: "#545454",
+        fontFamily: "Roboto",
+        fontWeight: "lighter",
+        fontSize: "10px"
+      },
+      tooltip: {
+        trigger: "axis",
+        formatter: chartTooltipFormat[KIPMap[state_page_business_chartsPanel_segmentSelected][0]] ,
+        axisPointer: {
+          type: "shadow",
+          crossStyle: {
+            color: "#999"
+          }
+        }
+      },
+      legend: {
+        data: ["value"],
+        left: "80%",
+        top: "2%",
+        itemWidth: 10,
+        itemHeight: 5,
+        show: false
+      },
+      xAxis: {
+        type: "category",
+        data: state_page_business_chartsPanel_xAxis,
+        axisLabel: {
+          margin: "5",
+          fontSize: "10px"
+        },
+        name: "",
+        nameLocation: "center",
+        axisTick: {
+          alignWithLabel: true,
+          inside: true
+        }
+      },
+      yAxis: {
+        name: "",
+        type: "value",
+        max: Math.max(...state_page_business_chartsPanel_data[KIPMap[state_page_business_chartsPanel_segmentSelected][0]]) * 1.1,
+        splitLine: {
+          show: false
+        },
+        axisLabel:{
+            show: false
+        }
+      },
+      dataZoom: [
+        {
+          show: false,
+          realtime: true,
+          start: 60,
+          end: 100
+        },
+        {
+          type: "inside",
+          realtime: true,
+          start: 60,
+          end: 100
+        }
+      ],
+      grid: {
+        left: '5%',
+        top: '10%',
+        right: '5%',
+        bottom: '10%'
+      },
+      series: [{
+      name: "A",
+      type: "bar",
+      itemStyle: {
+        color: (e)=>{ return ((e.dataIndex === 14)?'#1071e8':'#90bef5')}//'#90bef5'
+    },
+      //data: state_page_business_chartsPanel_data.Drop,
+      data: state_page_business_chartsPanel_data[KIPMap[state_page_business_chartsPanel_segmentSelected][0]],
+      label: {
+        show: true,
+        position: 'top',
+        color: "#3d85db",
+        fontSize: 12,
+       /* formatter: function(d) {
+          return d.data;
+        }
+        formatter: function (params) {
+          return `${(params.value / 1000000).toFixed(0)}m`;
+        }*/ 
+        formatter: chartLabelFormat[KIPMap[state_page_business_chartsPanel_segmentSelected][0]],//params => `${(params.value / 1000000).toFixed(0)}m`
+      },
+    }]
+    };
+
+    var option2 = {
+        title:{
+            show:true,
+            text:KIPMap[state_page_business_chartsPanel_segmentSelected][1],
+            subtext:"",
+            x:"15px",
+            y:"top",
+            textStyle:{
+                fontSize:'15px',
+                fontWeight:'normal'
+            },
+            padding: [2,0,5,0]
+          },
+          textStyle: {
+            color: "#545454",
+            fontFamily: "Roboto",
+            fontWeight: "lighter",
+            fontSize: "10px"
+          },
+          tooltip: {
+            trigger: "axis",
+            formatter: chartTooltipFormat[KIPMap[state_page_business_chartsPanel_segmentSelected][1]] ,
+            axisPointer: {
+              type: "shadow",
+              crossStyle: {
+                color: "#999"
+              }
+            }
+          },
+          legend: {
+            data: ["A"],
+            left: "80%",
+            top: "2%",
+            itemWidth: 10,
+            itemHeight: 5,
+            show: false
+          },
+          xAxis: {
+            type: "category",
+            data: state_page_business_chartsPanel_xAxis,
+            axisLabel: {
+              margin: "5",
+              fontSize: "10px"
+            },
+            name: "",
+            nameLocation: "center",
+            axisTick: {
+              alignWithLabel: true,
+              inside: true
+            }
+          },
+          yAxis: {
+            name: "",
+            type: "value",
+            max: Math.max(...state_page_business_chartsPanel_data[KIPMap[state_page_business_chartsPanel_segmentSelected][1]]) * 1.1,
+            splitLine: {
+              show: false
+            },
+            axisLabel:{
+                show: false
+            }
+          },
+          dataZoom: [
+            {
+              show: false,
+              realtime: true,
+              start: 60,
+              end: 100
+            },
+            {
+              type: "inside",
+              realtime: true,
+              start: 60,
+              end: 100
+            }
+          ],
+          grid: {
+            left: '5%',
+            top: '10%',
+            right: '5%',
+            bottom: '10%'
+          },
+          series: [{
+          name: "A",
+          type: "bar",
+          itemStyle: {
+            color: (e)=>{ return ((e.dataIndex === 14)?'#1071e8':'#90bef5')}//'#90bef5'
+        },
+          data: state_page_business_chartsPanel_data[KIPMap[state_page_business_chartsPanel_segmentSelected][1]],
+          label: {
+            show: true,
+            position: 'top',
+            color: "#3d85db",
+            fontSize: 12,
+           /* formatter: function(d) {
+              return d.data;
+            }
+            formatter: function (params) {
+              return `${(params.value / 1000000).toFixed(0)}m`;
+            }*/ 
+            formatter: chartLabelFormat[KIPMap[state_page_business_chartsPanel_segmentSelected][1]],//params => `${(params.value / 1000000).toFixed(0)}m`
+          },
+        }]
+    };
+
+    var option3 = {
+        title:{
+            show:true,
+            text:KIPMap[state_page_business_chartsPanel_segmentSelected][2],
+            subtext:"",
+            x:"15px",
+            y:"top",
+            textStyle:{
+                fontSize:'15px',
+                fontWeight:'normal'
+            },
+            padding: [2,0,5,0]
+          },
+          textStyle: {
+            color: "#545454",
+            fontFamily: "Roboto",
+            fontWeight: "lighter",
+            fontSize: "10px"
+          },
+          tooltip: {
+            trigger: "axis",
+            formatter: chartTooltipFormat[KIPMap[state_page_business_chartsPanel_segmentSelected][2]] ,
+            axisPointer: {
+              type: "shadow",
+              crossStyle: {
+                color: "#999"
+              }
+            }
+          },
+          legend: {
+            data: ["A"],
+            left: "80%",
+            top: "2%",
+            itemWidth: 10,
+            itemHeight: 5,
+            show: false
+          },
+          xAxis: {
+            type: "category",
+            data: state_page_business_chartsPanel_xAxis,
+            axisLabel: {
+              margin: "5",
+              fontSize: "10px"
+            },
+            name: "",
+            nameLocation: "center",
+            axisTick: {
+              alignWithLabel: true,
+              inside: true
+            }
+          },
+          yAxis: {
+            name: "",
+            type: "value",
+            max: Math.max(...state_page_business_chartsPanel_data[KIPMap[state_page_business_chartsPanel_segmentSelected][2]]) * 1.1,
+            splitLine: {
+              show: false
+            },
+            axisLabel:{
+                show: false
+            }
+          },
+          dataZoom: [
+            {
+              show: false,
+              realtime: true,
+              start: 60,
+              end: 100
+            },
+            {
+              type: "inside",
+              realtime: true,
+              start: 60,
+              end: 100
+            }
+          ],
+          grid: {
+            left: '5%',
+            top: '10%',
+            right: '5%',
+            bottom: '10%'
+          },
+          series: [{
+          name: "A",
+          type: "bar",
+          itemStyle: {
+            color: (e)=>{ return ((e.dataIndex === 14)?'#1071e8':'#90bef5')}//'#90bef5'
+        },
+          data: state_page_business_chartsPanel_data[KIPMap[state_page_business_chartsPanel_segmentSelected][2]],
+          label: {
+            show: true,
+            position: 'top',
+            color: "#3d85db",
+            fontSize: 12,
+           /* formatter: function(d) {
+              return d.data;
+            }
+            formatter: function (params) {
+              return `${(params.value / 1000000).toFixed(0)}m`;
+            }*/ 
+            formatter: chartLabelFormat[KIPMap[state_page_business_chartsPanel_segmentSelected][2]],//params => `${(params.value / 1000000).toFixed(0)}m`
+          },
+        }]
+      };
+  
+    var option4 = {
+        title:{
+            show:true,
+            text:KIPMap[state_page_business_chartsPanel_segmentSelected][3],
+            subtext:"",
+            x:"15px",
+            y:"top",
+            textStyle:{
+                fontSize:'15px',
+                fontWeight:'normal'
+            },
+            padding: [2,0,5,0]
+          },
+          textStyle: {
+            color: "#545454",
+            fontFamily: "Roboto",
+            fontWeight: "lighter",
+            fontSize: "10px"
+          },
+          tooltip: {
+            trigger: "axis",
+            formatter: chartTooltipFormat[KIPMap[state_page_business_chartsPanel_segmentSelected][3]] ,
+            axisPointer: {
+              type: "shadow",
+              crossStyle: {
+                color: "#999"
+              }
+            }
+          },
+          legend: {
+            data: ["A"],
+            left: "80%",
+            top: "2%",
+            itemWidth: 10,
+            itemHeight: 5,
+            show: false
+          },
+          xAxis: {
+            type: "category",
+            data: state_page_business_chartsPanel_xAxis,
+            axisLabel: {
+              margin: "5",
+              fontSize: "10px"
+            },
+            name: "",
+            nameLocation: "center",
+            axisTick: {
+              alignWithLabel: true,
+              inside: true
+            }
+          },
+          yAxis: {
+            name: "",
+            type: "value",
+            max: Math.max(...state_page_business_chartsPanel_data[KIPMap[state_page_business_chartsPanel_segmentSelected][3]]) * 1.1,
+            splitLine: {
+              show: false
+            },
+            axisLabel:{
+                show: false
+            }
+          },
+          dataZoom: [
+            {
+              show: false,
+              realtime: true,
+              start: 60,
+              end: 100
+            },
+            {
+              type: "inside",
+              realtime: true,
+              start: 60,
+              end: 100
+            }
+          ],
+          grid: {
+            left: '5%',
+            top: '10%',
+            right: '5%',
+            bottom: '10%'
+          },
+          series: [{
+          name: "A",
+          type: "bar",
+          itemStyle: {
+            color: (e)=>{ return ((e.dataIndex === 14)?'#1071e8':'#90bef5')}//'#90bef5'
+        },
+          data: state_page_business_chartsPanel_data[KIPMap[state_page_business_chartsPanel_segmentSelected][3]],
+          label: {
+            show: true,
+            position: 'top',
+            color: "#3d85db",
+            fontSize: 12,
+           /* formatter: function(d) {
+              return d.data;
+            }
+            formatter: function (params) {
+              return `${(params.value / 1000000).toFixed(0)}m`;
+            }*/ 
+            formatter: chartLabelFormat[KIPMap[state_page_business_chartsPanel_segmentSelected][3]],//params => `${(params.value / 1000000).toFixed(0)}m`
+          },
+        }]
+      };
+
+      var option5 = {
+        title:{
+            show:true,
+            text:KIPMap[state_page_business_chartsPanel_segmentSelected][4],
+            subtext:"",
+            x:"15px",
+            y:"top",
+            textStyle:{
+                fontSize:'15px',
+                fontWeight:'normal'
+            },
+            padding: [2,0,5,0]
+          },
+          textStyle: {
+            color: "#545454",
+            fontFamily: "Roboto",
+            fontWeight: "lighter",
+            fontSize: "10px"
+          },
+          tooltip: {
+            trigger: "axis",
+            formatter: chartTooltipFormat[KIPMap[state_page_business_chartsPanel_segmentSelected][4]] ,
+            axisPointer: {
+              type: "shadow",
+              crossStyle: {
+                color: "#999"
+              }
+            }
+          },
+          legend: {
+            data: ["A"],
+            left: "80%",
+            top: "2%",
+            itemWidth: 10,
+            itemHeight: 5,
+            show: false
+          },
+          xAxis: {
+            type: "category",
+            data: state_page_business_chartsPanel_xAxis,
+            axisLabel: {
+              margin: "5",
+              fontSize: "10px"
+            },
+            name: "",
+            nameLocation: "center",
+            axisTick: {
+              alignWithLabel: true,
+              inside: true
+            }
+          },
+          yAxis: {
+            name: "",
+            type: "value",
+            max: Math.max(...state_page_business_chartsPanel_data[KIPMap[state_page_business_chartsPanel_segmentSelected][4]]) * 1.1,
+            splitLine: {
+              show: false
+            },
+            axisLabel:{
+                show: false
+            }
+          },
+          dataZoom: [
+            {
+              show: false,
+              realtime: true,
+              start: 60,
+              end: 100
+            },
+            {
+              type: "inside",
+              realtime: true,
+              start: 60,
+              end: 100
+            }
+          ],
+          grid: {
+            left: '5%',
+            top: '10%',
+            right: '5%',
+            bottom: '10%'
+          },
+          series: [{
+          name: "A",
+          type: "bar",
+          itemStyle: {
+            color: (e)=>{ return ((e.dataIndex === 14)?'#1071e8':'#90bef5')}//'#90bef5'
+        },
+          data: state_page_business_chartsPanel_data[KIPMap[state_page_business_chartsPanel_segmentSelected][4]],
+          label: {
+            show: true,
+            position: 'top',
+            color: "#3d85db",
+            fontSize: 12,
+           /* formatter: function(d) {
+              return d.data;
+            }
+            formatter: function (params) {
+              return `${(params.value / 1000000).toFixed(0)}m`;
+            }*/ 
+            formatter: chartLabelFormat[KIPMap[state_page_business_chartsPanel_segmentSelected][4]],//params => `${(params.value / 1000000).toFixed(0)}m`
+          },
+        }]
+      };
+
+      var option6 = {
+        title:{
+            show:true,
+            text:KIPMap[state_page_business_chartsPanel_segmentSelected][5],
+            subtext:"",
+            x:"15px",
+            y:"top",
+            textStyle:{
+                fontSize:'15px',
+                fontWeight:'normal'
+            },
+            padding: [2,0,5,0]
+          },
+          textStyle: {
+            color: "#545454",
+            fontFamily: "Roboto",
+            fontWeight: "lighter",
+            fontSize: "10px"
+          },
+          tooltip: {
+            trigger: "axis",
+            formatter: chartTooltipFormat[KIPMap[state_page_business_chartsPanel_segmentSelected][5]] ,
+            axisPointer: {
+              type: "shadow",
+              crossStyle: {
+                color: "#999"
+              }
+            }
+          },
+          legend: {
+            data: ["A"],
+            left: "80%",
+            top: "2%",
+            itemWidth: 10,
+            itemHeight: 5,
+            show: false
+          },
+          xAxis: {
+            type: "category",
+            data: state_page_business_chartsPanel_xAxis,
+            axisLabel: {
+              margin: "5",
+              fontSize: "10px"
+            },
+            name: "",
+            nameLocation: "center",
+            axisTick: {
+              alignWithLabel: true,
+              inside: true
+            }
+          },
+          yAxis: {
+            name: "",
+            type: "value",
+            max: Math.max(...state_page_business_chartsPanel_data[KIPMap[state_page_business_chartsPanel_segmentSelected][5]]) * 1.1,
+            splitLine: {
+              show: false
+            },
+            axisLabel:{
+                show: false
+            }
+          },
+          dataZoom: [
+            {
+              show: false,
+              realtime: true,
+              start: 60,
+              end: 100
+            },
+            {
+              type: "inside",
+              realtime: true,
+              start: 60,
+              end: 100
+            }
+          ],
+          grid: {
+            left: '5%',
+            top: '10%',
+            right: '5%',
+            bottom: '10%'
+          },
+          series: [{
+          name: "A",
+          type: "bar",
+          itemStyle: {
+            color: (e)=>{ return ((e.dataIndex === 14)?'#1071e8':'#90bef5')}//'#90bef5'
+        },
+          data: state_page_business_chartsPanel_data[KIPMap[state_page_business_chartsPanel_segmentSelected][5]],
+          label: {
+            show: true,
+            position: 'top',
+            color: "#3d85db",
+            fontSize: 12,
+           /* formatter: function(d) {
+              return d.data;
+            }
+            formatter: function (params) {
+              return `${(params.value / 1000000).toFixed(0)}m`;
+            }*/ 
+            formatter: chartLabelFormat[KIPMap[state_page_business_chartsPanel_segmentSelected][5]],//params => `${(params.value / 1000000).toFixed(0)}m`
+          },
+        }]
+      };
+
+      var option7 = {
+        title:{
+            show:true,
+            text:KIPMap[state_page_business_chartsPanel_segmentSelected][6],
+            subtext:"",
+            x:"15px",
+            y:"top",
+            textStyle:{
+                fontSize:'15px',
+                fontWeight:'normal'
+            },
+            padding: [2,0,5,0]
+          },
+          textStyle: {
+            color: "#545454",
+            fontFamily: "Roboto",
+            fontWeight: "lighter",
+            fontSize: "10px"
+          },
+          tooltip: {
+            trigger: "axis",
+            formatter: chartTooltipFormat[KIPMap[state_page_business_chartsPanel_segmentSelected][6]] ,
+            axisPointer: {
+              type: "shadow",
+              crossStyle: {
+                color: "#999"
+              }
+            }
+          },
+          legend: {
+            data: ["A"],
+            left: "80%",
+            top: "2%",
+            itemWidth: 10,
+            itemHeight: 5,
+            show: false
+          },
+          xAxis: {
+            type: "category",
+            data: state_page_business_chartsPanel_xAxis,
+            axisLabel: {
+              margin: "5",
+              fontSize: "10px"
+            },
+            name: "",
+            nameLocation: "center",
+            axisTick: {
+              alignWithLabel: true,
+              inside: true
+            }
+          },
+          yAxis: {
+            name: "",
+            type: "value",
+            max: Math.max(...state_page_business_chartsPanel_data[KIPMap[state_page_business_chartsPanel_segmentSelected][6]]) * 1.1,
+            splitLine: {
+              show: false
+            },
+            axisLabel:{
+                show: false
+            }
+          },
+          dataZoom: [
+            {
+              show: false,
+              realtime: true,
+              start: 60,
+              end: 100
+            },
+            {
+              type: "inside",
+              realtime: true,
+              start: 60,
+              end: 100
+            }
+          ],
+          grid: {
+            left: '5%',
+            top: '10%',
+            right: '5%',
+            bottom: '10%'
+          },
+          series: [{
+          name: "A",
+          type: "bar",
+          itemStyle: {
+            color: (e)=>{ return ((e.dataIndex === 14)?'#1071e8':'#90bef5')}//'#90bef5'
+        },
+          data: state_page_business_chartsPanel_data[KIPMap[state_page_business_chartsPanel_segmentSelected][6]],
+          label: {
+            show: true,
+            position: 'top',
+            color: "#3d85db",
+            fontSize: 12,
+           /* formatter: function(d) {
+              return d.data;
+            }
+            formatter: function (params) {
+              return `${(params.value / 1000000).toFixed(0)}m`;
+            }*/ 
+            formatter: chartLabelFormat[KIPMap[state_page_business_chartsPanel_segmentSelected][6]],//params => `${(params.value / 1000000).toFixed(0)}m`
+          },
+        }]
+      };
+
+      var option8 = {
+        title:{
+            show:true,
+            text:KIPMap[state_page_business_chartsPanel_segmentSelected][7],
+            subtext:"",
+            x:"15px",
+            y:"top",
+            textStyle:{
+                fontSize:'15px',
+                fontWeight:'normal'
+            },
+            padding: [2,0,5,0]
+          },
+          textStyle: {
+            color: "#545454",
+            fontFamily: "Roboto",
+            fontWeight: "lighter",
+            fontSize: "10px"
+          },
+          tooltip: {
+            trigger: "axis",
+            formatter: chartTooltipFormat[KIPMap[state_page_business_chartsPanel_segmentSelected][7]] ,
+            axisPointer: {
+              type: "shadow",
+              crossStyle: {
+                color: "#999"
+              }
+            }
+          },
+          legend: {
+            data: ["A"],
+            left: "80%",
+            top: "2%",
+            itemWidth: 10,
+            itemHeight: 5,
+            show: false
+          },
+          xAxis: {
+            type: "category",
+            data: state_page_business_chartsPanel_xAxis,
+            axisLabel: {
+              margin: "5",
+              fontSize: "10px"
+            },
+            name: "",
+            nameLocation: "center",
+            axisTick: {
+              alignWithLabel: true,
+              inside: true
+            }
+          },
+          yAxis: {
+            name: "",
+            type: "value",
+            max: Math.max(...state_page_business_chartsPanel_data[KIPMap[state_page_business_chartsPanel_segmentSelected][7]]) * 1.1,
+            splitLine: {
+              show: false
+            },
+            axisLabel:{
+                show: false
+            }
+          },
+          dataZoom: [
+            {
+              show: false,
+              realtime: true,
+              start: 60,
+              end: 100
+            },
+            {
+              type: "inside",
+              realtime: true,
+              start: 60,
+              end: 100
+            }
+          ],
+          grid: {
+            left: '5%',
+            top: '10%',
+            right: '5%',
+            bottom: '10%'
+          },
+          series: [{
+          name: "A",
+          type: "bar",
+          itemStyle: {
+            color: (e)=>{ return ((e.dataIndex === 14)?'#1071e8':'#90bef5')}//'#90bef5'
+        },
+          data: state_page_business_chartsPanel_data[KIPMap[state_page_business_chartsPanel_segmentSelected][7]],
+          label: {
+            show: true,
+            position: 'top',
+            color: "#3d85db",
+            fontSize: 12,
+           /* formatter: function(d) {
+              return d.data;
+            }
+            formatter: function (params) {
+              return `${(params.value / 1000000).toFixed(0)}m`;
+            }*/ 
+            formatter: chartLabelFormat[KIPMap[state_page_business_chartsPanel_segmentSelected][7]],//params => `${(params.value / 1000000).toFixed(0)}m`
+          },
+        }]
+      };
+
+    chartInstance.setOption(option1);
+    chartInstance2.setOption(option2);
+    chartInstance3.setOption(option3);
+    chartInstance4.setOption(option4);
+    chartInstance5.setOption(option5);
+    chartInstance6.setOption(option6);
+    chartInstance7.setOption(option7);
+    chartInstance8.setOption(option8);
+
+    echarts.connect([chartInstance, chartInstance2,chartInstance3, chartInstance4,chartInstance5, chartInstance6,chartInstance7, chartInstance8]);
+
+    set_state_page_business_chartsPanel_updated(true);
+    }
+    
+  }, [state_page_business_chartsPanel_data , state_page_business_chartsPanel_xAxis , state_page_business_chartsPanel_segmentSelected]);
+
+  const resizeFunc = () => {
+    if (chartInstance &&chartInstance2 &&chartInstance3 &&chartInstance4 &&chartInstance5 &&chartInstance6 &&chartInstance7 &&chartInstance8) {
+      chartInstance.resize();
+      chartInstance2.resize();
+      chartInstance3.resize();
+      chartInstance4.resize();
+      chartInstance5.resize();
+      chartInstance6.resize();
+      chartInstance7.resize();
+      chartInstance8.resize();
+    }
+    
+  }
+
+  useEffect(() => {
+    window.addEventListener('resize' , resizeFunc) 
+ 
+    return () => {
+        window.removeEventListener('resize' , resizeFunc) 
+        //chartInstance2 && chartInstance2.dispose();
+    };
+  }, [state_page_business_chartsPanel_updated]);
+
+  return (
+    <CCard className="mt-2 mb-2" shadow-sm="true" style={{borderRadius: "0px" , borderWidth: "1px"}}>
+        <CCardHeader style={{borderWidth: "0px"}}>Charts Panel</CCardHeader>
+        <CRow className="mt-2" xs={{ cols: 2 }}  md={{ cols: 4 }} >
+            <CCol>
+                <div ref={chartRef} style={{ height: "200px" }}></div>
+            </CCol>
+            <CCol>
+                <div ref={chartRef2} style={{ height: "200px" }}></div>
+            </CCol>
+            <CCol>
+                <div ref={chartRef3} style={{ height: "200px" }}></div>
+            </CCol>
+            <CCol>
+                <div ref={chartRef4} style={{ height: "200px" }}></div>
+            </CCol>
+        </CRow>
+        <CRow className="mt-2" xs={{ cols: 2 }}  md={{ cols: 4 }} >
+            <CCol>
+                <div ref={chartRef5} style={{ height: "200px" }}></div>
+            </CCol>
+            <CCol>
+                <div ref={chartRef6} style={{ height: "200px" }}></div>
+            </CCol>
+            <CCol>
+                <div ref={chartRef7} style={{ height: "200px" }}></div>
+            </CCol>
+            <CCol>
+                <div ref={chartRef8} style={{ height: "200px" }}></div>
+            </CCol>
+        </CRow>
+    </CCard>
+
+  );
+}
+
+export default BarChartInRow;
