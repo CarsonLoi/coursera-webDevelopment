@@ -1,0 +1,58 @@
+
+const data2 = [
+  { gamingdate:'2024-01-01', area:'Mainstream', pit:301, game:'NC', table:30112, drop:2341234, win:234123, patron:123, floortable:1},
+  { gamingdate:'2024-01-01', area:'Mainstream', pit:301, game:'SB', table:30111, drop:3424, win:123134, patron:12, floortable:1},
+  { gamingdate:'2024-01-01', area:'Mainstream', pit:302, game:'NC', table:30234, drop:234, win:5765, patron:23, floortable:1},
+  { gamingdate:'2024-01-01', area:'Mainstream', pit:302, game:'NC', table:30235, drop:12345, win:5684, patron:457, floortable:1},
+  { gamingdate:'2024-01-01', area:'Mainstream', pit:303, game:'NC', table:30301, drop:888, win:878, patron:67, floortable:1},
+  { gamingdate:'2024-01-01', area:'Mainstream', pit:303, game:'SB', table:30302, drop:6444, win:678, patron:64, floortable:1},
+  { gamingdate:'2024-01-01', area:'Signature', pit:388, game:'NC', table:38801, drop:1231231, win:12, patron:324, floortable:1},
+  { gamingdate:'2024-01-01', area:'Signature', pit:388, game:'NC', table:38803, drop:256, win:6, patron:76, floortable:1},
+  { gamingdate:'2024-01-01', area:'Signature', pit:388, game:'BA', table:38802, drop:75, win:323, patron:34, floortable:1},
+  { gamingdate:'2024-01-02', area:'Mainstream', pit:301, game:'NC', table:30112, drop:137, win:5560, patron:4664, floortable:1},
+  { gamingdate:'2024-01-02', area:'Mainstream', pit:301, game:'SB', table:30111, drop:4791, win:9194, patron:1056, floortable:1},
+  { gamingdate:'2024-01-02', area:'Mainstream', pit:302, game:'NC', table:30234, drop:3647, win:7909, patron:7257, floortable:1},
+  { gamingdate:'2024-01-02', area:'Mainstream', pit:302, game:'NC', table:30235, drop:3380, win:7424, patron:9107, floortable:1},
+  { gamingdate:'2024-01-02', area:'Mainstream', pit:303, game:'NC', table:30301, drop:495, win:2404, patron:2932, floortable:1},
+  { gamingdate:'2024-01-02', area:'Mainstream', pit:303, game:'SB', table:30302, drop:2464, win:9322, patron:4502, floortable:1},
+  { gamingdate:'2024-01-02', area:'Signature', pit:388, game:'NC', table:38801, drop:6312, win:7213, patron:1302, floortable:1},
+  { gamingdate:'2024-01-02', area:'Signature', pit:388, game:'NC', table:38803, drop:248, win:8700, patron:7990, floortable:1},
+  { gamingdate:'2024-01-02', area:'Signature', pit:388, game:'BA', table:38802, drop:5022, win:8227, patron:3413, floortable:1},
+  { gamingdate:'2024-01-03', area:'Mainstream', pit:301, game:'NC', table:30112, drop:2096, win:1918, patron:9365, floortable:1},
+  { gamingdate:'2024-01-03', area:'Mainstream', pit:301, game:'SB', table:30111, drop:5050, win:6884, patron:7784, floortable:1},
+  { gamingdate:'2024-01-03', area:'Mainstream', pit:302, game:'NC', table:30234, drop:8259, win:1205, patron:368, floortable:1},
+  { gamingdate:'2024-01-03', area:'Mainstream', pit:302, game:'BJ', table:30236, drop:6852, win:4130, patron:6048, floortable:1},
+  { gamingdate:'2024-01-03', area:'Mainstream', pit:302, game:'NC', table:30235, drop:1670, win:4492, patron:6892, floortable:1},
+  { gamingdate:'2024-01-03', area:'Mainstream', pit:303, game:'NC', table:30301, drop:4137, win:6938, patron:4182, floortable:1},
+  { gamingdate:'2024-01-03', area:'Mainstream', pit:303, game:'SB', table:30302, drop:9713, win:8174, patron:781, floortable:1},
+  { gamingdate:'2024-01-03', area:'Signature', pit:388, game:'NC', table:38801, drop:3050, win:6181, patron:1837, floortable:1},
+  { gamingdate:'2024-01-03', area:'Signature', pit:388, game:'NC', table:38803, drop:7681, win:6208, patron:6900, floortable:1},
+  { gamingdate:'2024-01-03', area:'Signature', pit:388, game:'BA', table:38802, drop:8193, win:7605, patron:5759, floortable:1},
+  { gamingdate:'2024-01-04', area:'Mainstream', pit:301, game:'NC', table:30112, drop:184, win:9321, patron:3167, floortable:1},
+  { gamingdate:'2024-01-04', area:'Mainstream', pit:301, game:'SB', table:30111, drop:310, win:3401, patron:6800, floortable:1},
+  { gamingdate:'2024-01-04', area:'Mainstream', pit:302, game:'NC', table:30234, drop:308, win:5839, patron:6065, floortable:1},
+  { gamingdate:'2024-01-04', area:'Mainstream', pit:302, game:'BJ', table:30236, drop:558, win:722, patron:1353, floortable:1},
+  { gamingdate:'2024-01-04', area:'Mainstream', pit:302, game:'NC', table:30235, drop:2803, win:8969, patron:6132, floortable:1},
+  { gamingdate:'2024-01-04', area:'Mainstream', pit:303, game:'NC', table:30301, drop:8827, win:160, patron:9301, floortable:1},
+  { gamingdate:'2024-01-04', area:'Mainstream', pit:303, game:'SB', table:30302, drop:7325, win:5196, patron:2398, floortable:1},
+  { gamingdate:'2024-01-04', area:'Signature', pit:388, game:'NC', table:38801, drop:5913, win:5414, patron:4050, floortable:1},
+  { gamingdate:'2024-01-04', area:'Signature', pit:388, game:'NC', table:38803, drop:4765, win:5110, patron:146, floortable:1},
+  { gamingdate:'2024-01-04', area:'Signature', pit:388, game:'BA', table:38802, drop:3040, win:1133, patron:2673, floortable:1},
+];
+
+const unique_gamingdate = [...new Set(data2.map(item => item.gamingdate))]; // [ 'A', 'B']
+const unique_area = [...new Set(data2.map(item => item.area))]; // [ 'A', 'B']
+const unique_pit = [...new Set(data2.map(item => item.pit))]; // [ 'A', 'B']
+const unique_game = [...new Set(data2.map(item => item.game))]; // [ 'A', 'B']
+console.log(unique_gamingdate , unique_pit)
+
+// filter dataset by gamingdate 
+const filterValues = ['2024-01-03', '2024-01-04'];
+const filterStart = '2024-01-03' ;
+const filterEnd = '2024-01-04' ;
+//const filteredArray = data2.filter(object => filterValues.includes(object.gamingdate));
+
+let result = data2.filter((data) => {
+  return  +new Date(data.gamingdate) >=  +new Date(filterStart) && +new Date(data.gamingdate) <=  +new Date(filterEnd);
+})
+console.log(result)
