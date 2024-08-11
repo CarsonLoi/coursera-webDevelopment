@@ -1,0 +1,97 @@
+import * as React from 'react';
+import OutlinedInput from '@mui/material/OutlinedInput';
+import InputLabel from '@mui/material/InputLabel';
+import MenuItem from '@mui/material/MenuItem';
+import FormControl from '@mui/material/FormControl';
+import ListItemText from '@mui/material/ListItemText';
+import Select from '@mui/material/Select';
+import Checkbox from '@mui/material/Checkbox';
+import PubSub from 'pubsub-js';
+
+
+const ITEM_HEIGHT = 30;
+const ITEM_PADDING_TOP = 5;
+const MenuProps = {
+  PaperProps: {
+    style: {
+      maxHeight: ITEM_HEIGHT * 4.5 + ITEM_PADDING_TOP,
+      //width: 300,
+    },
+  },
+};
+
+const data = [{property:'GM', area:'Mass_PM', hall:['Mass_PM']},
+              {property:'GM', area:'Mass', hall:['Hall1','Hall2','Hall3','Hall5','Hall6','Hall7']},   
+              {property:'GM', area:'PM', hall:['PV3','PVN','HZ','PV6','PVW','PVE']}, 
+              {property:'GM', area:'JM', hall:['JM1' , 'JM8' , 'Sky']}, 
+              {property:'GM', area:'NIC', hall:['NIC']},    
+              {property:'GM', area:'PRR', hall:['PRR']},       
+              {property:'SW', area:'Mass_PM', hall:['Mass_PM']},
+              {property:'SW', area:'Mass', hall:['HCL' , 'LCL' , 'L3']},   
+              {property:'SW', area:'PM', hall:['PV' , 'HZ']}, ]
+
+
+export default function DropdownSelectorHall(props) {
+    const {label } = props;
+    const [selectedProperty , setSelectedProperty] = React.useState('GM');
+    const [selectedArea , setSelectedArea] = React.useState('Mass_PM');
+    const [availableMetric , setAvailableMetric] = React.useState(['Mass_PM']);
+    const [selectedMetric, setSelectedMetric] = React.useState(['Mass_PM']);
+
+    PubSub.subscribe("page_business_selectedProperty", (msg, data) => {
+        //console.log(data);
+        setSelectedProperty(data);
+        setSelectedArea("Mass_PM")
+    });
+
+    PubSub.subscribe("page_business_selectedArea", (msg, data) => {
+        //console.log(data);
+        setSelectedArea(data);
+    });
+
+  React.useEffect(() => {
+    const tempAvailableHall = data.filter(x => x.property === selectedProperty && x.area === selectedArea)[0].hall
+
+    setAvailableMetric(tempAvailableHall)
+    setSelectedMetric(tempAvailableHall)
+    PubSub.publish("page_business_selectedHall", tempAvailableHall)
+  },[selectedProperty , selectedArea])
+
+  const handleChange = (event) => {
+
+    const {target: { value }} = event;
+    setSelectedMetric(
+        // On autofill we get a stringified value.
+      typeof value === 'string' ? value.split(',') : value,
+  
+      );
+    //setSelectedMetric(event.target.value);
+    PubSub.publish("page_business_selectedHall", (typeof value === 'string' ? value.split(',') : value))
+  };
+
+  return (
+    <FormControl style={{width:'100%'}} sx={{ mt:2, minWidth: 150}} size="small">
+      
+      <InputLabel id="demo-multiple-checkbox-label">{label}</InputLabel>
+                  <Select
+                    labelId="demo-multiple-checkbox-label"
+                    id="demo-multiple-checkbox"
+                    multiple
+                    value={selectedMetric}
+                    onChange={handleChange}
+                    input={<OutlinedInput label="Hall" />}
+                    //renderValue={(selected) => selected}
+                    renderValue={(selected) => selected.join(', ')}
+                    MenuProps={MenuProps}
+                  >
+                    {availableMetric.map((data) => (
+                      <MenuItem key={data} value={data}>
+                        {/*<Checkbox checked={['GM' , 'SW'].indexOf(data) > -1} />*/}
+                        <Checkbox checked={selectedMetric.indexOf(data) > -1} />
+                        <ListItemText primary={data} />
+                      </MenuItem>
+                    ))}
+                  </Select>
+    </FormControl>
+  );
+}
