@@ -1,0 +1,125 @@
+const fakeData = {
+    2010: [
+      { name: "Sands", win: 10000, drop: 10000 },
+      { name: "Melco", win: 8000, drop: 12000 },
+      { name: "GEG", win: 12000, drop: 13000 },
+      { name: "MGM", win: 6800, drop: 14000 },
+      { name: "Wynn", win: null, drop: null },
+      { name: "SJM", win: 5800, drop: 16000 },
+    ],
+    2011: [
+      { name: "Sands", win: 12000, drop: 12000 },
+      { name: "Melco", win: 9000, drop: 13000 },
+      { name: "GEG", win: 11000, drop: 14000 },
+      { name: "MGM", win: 7800, drop: 16000 },
+      { name: "Wynn", win: 7520, drop: 17000 },
+      { name: "SJM", win: 6800, drop: 18000 },
+    ],
+    2012: [
+      { name: "Sands", win: 9000, drop: 12000 },
+      { name: "Melco", win: 8000, drop: 14000 },
+      { name: "GEG", win: 11500, drop: 16000 },
+      { name: "MGM", win: 8800, drop: 13000 },
+      { name: "Wynn", win: 7800, drop: 17000 },
+      { name: "SJM", win: 6800, drop: 19000 },
+    ],
+    2013: [
+      { name: "Sands", win: 12000, drop: 9000 },
+      { name: "Melco", win: 7300, drop: 7000 },
+      { name: "GEG", win: 13000, drop: 8000 },
+      { name: "MGM", win: 7500, drop: 12000 },
+      { name: "Wynn", win: 6200, drop: 11000 },
+      { name: "SJM", win: 6800, drop: 5000 },
+    ],
+  };
+
+const variable = 'drop' ;
+const array_3 = [] ;
+
+Object.values(fakeData).map( d => {
+
+    d.forEach(row => row[variable] !== null ? array_3.push(row[variable]) : '')
+})
+
+console.log(array_3.sort(function(a,b){return a-b}))
+
+function return_Median(array){
+
+    var min_val, max_val ;
+
+    function median(numbers) {
+        // median of [3, 5, 4, 4, 1, 1, 2, 3] = 3
+        var median = 0,
+            numsLen = numbers.length;
+        
+        min_val = numbers[0];
+        max_val = numbers[numsLen - 1]
+
+        if (numsLen % 2 === 0) { // is even
+            // average of two middle numbers
+            median = (numbers[numsLen / 2 - 1] + numbers[numsLen / 2]) / 2;
+        } else { // is odd
+            // middle number only
+    
+            median = numbers[(numsLen - 1) / 2];
+        }
+        return median;
+
+    }
+
+    let median_idx = (array.length - 1 ) / 2 ;
+    let median_val = median(array);
+
+    return { min_val , max_val, median_val}
+
+}
+
+const a = return_Median(array_3.sort(function(a,b){return a-b}))
+
+console.log(a)
+
+function rbga_get(figure, requirement){
+    
+    function sumArray(array) {
+        const sum = array.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
+        return sum;
+    }
+
+    const referece_dict = {r : [104, 255, 248] , g: [191, 234, 108] , b:[123, 132, 107]}
+    const yellow_portion_increase = 1 / (requirement.median_val - requirement.min_val);
+    const red_portion_increase = 1 / (requirement.max_val - requirement.median_val);
+
+    var green_portion, yellow_portion, red_portion ;
+
+    if( figure === null){
+        
+        return 'transparent'
+
+    } else {
+        if( figure <= requirement.median_val){
+            red_portion = 0 ;
+            yellow_portion = (figure == requirement.min_val)? 0 : (figure - requirement.min_val)*yellow_portion_increase;
+            green_portion = 1 - yellow_portion;
+            
+            let r_result = sumArray(referece_dict['r'].map((value, index) => value * [green_portion, yellow_portion, red_portion][index])).toFixed(0);
+            let g_result = sumArray(referece_dict['g'].map((value, index) => value * [green_portion, yellow_portion, red_portion][index])).toFixed(0);
+            let b_result = sumArray(referece_dict['b'].map((value, index) => value * [green_portion, yellow_portion, red_portion][index])).toFixed(0);
+    
+            return 'rgba(' + r_result + ',' + g_result + ',' + b_result + ', 1)'
+        } else {
+            green_portion = 0 ;
+            red_portion = (figure - requirement.median_val)*red_portion_increase;
+            yellow_portion = 1 - red_portion;
+    
+            let r_result = sumArray(referece_dict['r'].map((value, index) => value * [green_portion, yellow_portion, red_portion][index])).toFixed(0);
+            let g_result = sumArray(referece_dict['g'].map((value, index) => value * [green_portion, yellow_portion, red_portion][index])).toFixed(0);
+            let b_result = sumArray(referece_dict['b'].map((value, index) => value * [green_portion, yellow_portion, red_portion][index])).toFixed(0);
+    
+            return 'rgba(' + r_result + ',' + g_result + ',' + b_result + ', 1)'
+        }
+    }
+    
+}
+
+const b = rbga_get(13000, a)
+console.log(b)
