@@ -10,3 +10,14 @@
         //chartInstance2 && chartInstance2.dispose();
     };
   }, []);
+
+
+var result = [];
+array.reduce(function(res, value) {
+  if (!res[value.Id]) {
+    res[value.Id] = { Id: value.Id, qty: 0 };
+    result.push(res[value.Id])
+  }
+  res[value.Id].qty += value.qty;
+  return res;
+}, {});
