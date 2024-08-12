@@ -1,0 +1,12 @@
+ const resizeFunc = () => {
+    if (chartInstance2) chartInstance2.resize();
+  }
+
+  useEffect(() => {
+    window.addEventListener('resize' , resizeFunc) 
+ 
+    return () => {
+        window.removeEventListener('resize' , resizeFunc) 
+        //chartInstance2 && chartInstance2.dispose();
+    };
+  }, []);
