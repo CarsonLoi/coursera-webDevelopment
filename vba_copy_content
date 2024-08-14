@@ -48,3 +48,6 @@ ErrorHandler:
     End If
     On Error GoTo 0
 End Sub
+
+
+wsA.Range("A1:C1").Value = Application.WorksheetFunction.Transpose(Application.Transpose(wsA.Range("A1:C1").Value) & newString)
