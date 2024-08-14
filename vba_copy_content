@@ -1,0 +1,50 @@
+Sub CopyDynamicRangeBetweenWorkbooksWithTransposeAndErrorHandler()
+    Dim wbA As Workbook
+    Dim wbB As Workbook
+    Dim wsA As Worksheet
+    Dim wsB As Worksheet
+    Dim lastColA As Long
+    
+    On Error GoTo ErrorHandler
+    
+    ' Open Workbook A
+    Set wbA = Workbooks.Open("Path_to_Workbook_A.xlsx")
+    
+    ' Assign Worksheet 1 in Workbook A to wsA
+    Set wsA = wbA.Sheets(1)
+    
+    ' Find the last used column in Row 1
+    lastColA = wsA.Cells(1, wsA.Columns.Count).End(xlToLeft).Column
+    
+    ' Open Workbook B
+    Set wbB = Workbooks.Open("Path_to_Workbook_B.xlsx")
+    
+    ' Assign Sheet 2 in Workbook B to wsB
+    Set wsB = wbB.Sheets(2)
+    
+    ' Copy data from Workbook A to Workbook B and transpose
+    wsA.Range(wsA.Cells(1, 1), wsA.Cells(1, lastColA)).Copy
+    wsB.Range("A1").PasteSpecial Paste:=xlPasteAll, Transpose:=True
+    
+    ' Close Workbook A without saving changes
+    wbA.Close SaveChanges:=False
+    
+    ' Save changes to Workbook B
+    wbB.Save
+    
+    ' Close Workbook B
+    wbB.Close SaveChanges:=True
+    
+    Exit Sub
+
+ErrorHandler:
+    MsgBox "An error occurred: " & Err.Description, vbExclamation
+    On Error Resume Next
+    If Not wbA Is Nothing Then
+        wbA.Close SaveChanges:=False
+    End If
+    If Not wbB Is Nothing Then
+        wbB.Close SaveChanges:=False
+    End If
+    On Error GoTo 0
+End Sub
